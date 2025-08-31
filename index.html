@@ -5,19 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>٩٩٩ — كتابة الرقم والفئة على اللوحات (علوية + سفلية)</title>
 
-  <!-- Tajawal for UI; FE‑Schrift for digits -->
+  <!-- Tajawal for UI; FE-Schrift for digits -->
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet" />
   <style>
-    /* نحاول كل الصيغ + الاسمين (FE.TTF و fe.ttf) لتفادي أخطاء حساسية الأحرف على GitHub */
-    @font-face {
-      font-family:'FE-Schrift';
-      src:
-        url('FE.woff2') format('woff2'),
-        url('FE.woff') format('woff'),
-        url('FE.TTF') format('truetype'),
-        url('fe.ttf') format('truetype');
-      font-display:swap;
-    }
+    @font-face { font-family:'FE-Schrift'; src:url('FE.TTF') format('truetype'); font-display:swap; }
 
     :root{ --stage-w:540px; }
 
@@ -40,7 +31,7 @@
     .field{ position:absolute; transform:translate(-50%,-50%); line-height:1; display:flex; align-items:center; justify-content:center; white-space:nowrap; }
 
     .cat{ font-weight:700; color:#fff; font-family:'Tajawal'; }
-    .digits{ font-family:'FE-Schrift','Tajawal'; font-weight:700; color:#000; direction:ltr; text-align:center; letter-spacing:.02em; font-variant-numeric:tabular-nums; }
+    .digits{ font-family:'FE-Schrift','Tajawal'; font-weight:700; color:#000; direction:ltr; text-align:center; }
   </style>
 </head>
 <body>
@@ -104,61 +95,54 @@
     const catInput = document.getElementById('plateCat');
     const pick = document.getElementById('carPick');
 
-    /*
-      لكل صورة:
-        top:   موضع/حجم الحاوية العلوية + صناديق مستقلة للرقم والفئة داخلها
-        bottom: موضع/حجم الحاوية السفلية + صناديق مستقلة للرقم والفئة داخلها
-      داخل كل plate، الإحداثيات (x,y,w,h) بالنسبة للوحة نفسها (٪)
-      fsH = نسبة مئوية من ارتفاع صندوق العنصر نفسه (وليس px) لتثبيت التناسب على كل الشاشات
-    */
     const presets = {
       'BRABUS.png': {
-        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
-        bottom: { plate:{l:50,t:82.0,w:38,h:6.5},  digits:{x:62,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:18,h:90, fsH:76} }
+        top:    { plate:{l:55,t:28,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:70}, cat:{x:3,y:60,w:16,h:90, fs:60} },
+        bottom: { plate:{l:50,t:75,w:38,h:6.5},  digits:{x:63,y:7,w:70,h:90, fs:25}, cat:{x:20,y:10,w:18,h:70, fs:20} }
       },
       'defender.png': {
-        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
-        bottom: { plate:{l:50,t:79.5,w:40,h:6.6},  digits:{x:62,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:50,t:79.5,w:40,h:6.6},  digits:{x:62,y:45,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:26} }
       },
       'GTR GREY.png': {
-        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
-        bottom: { plate:{l:50,t:83.0,w:40,h:6.7},  digits:{x:62,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:18,h:90, fsH:76} }
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:83.0,w:40,h:6.7},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:28} }
       },
       'Nissmo.png': {
-        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
-        bottom: { plate:{l:50,t:78.5,w:42,h:6.8},  digits:{x:62,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:18,h:90, fsH:76} }
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:62}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:78.5,w:42,h:6.8},  digits:{x:62,y:50,w:70,h:90, fs:44}, cat:{x:12,y:50,w:18,h:90, fs:28} }
       },
       'Octa.png': {
-        top:    { plate:{l:50,t:23.2,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
-        bottom: { plate:{l:63,t:88.0,w:32,h:6.2},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
+        top:    { plate:{l:50,t:23.2,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:63,t:88.0,w:32,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
       },
       'RANGE ROVER.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
-        bottom: { plate:{l:46,t:77.0,w:30,h:6.0},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:46,t:77.0,w:30,h:6.0},  digits:{x:62,y:50,w:70,h:90, fs:36}, cat:{x:12,y:50,w:18,h:90, fs:22} }
       },
       'RANTHA.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
-        bottom: { plate:{l:50,t:82.5,w:36,h:6.5},  digits:{x:62,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:82.5,w:36,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:40}, cat:{x:12,y:50,w:18,h:90, fs:26} }
       },
       'RR.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:16,h:90, fsH:80} },
-        bottom: { plate:{l:50,t:82.5,w:42,h:6.6},  digits:{x:62,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:18,h:90, fsH:76} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:62}, cat:{x:12,y:50,w:16,h:90, fs:38} },
+        bottom: { plate:{l:50,t:82.5,w:42,h:6.6},  digits:{x:62,y:50,w:70,h:90, fs:44}, cat:{x:12,y:50,w:18,h:90, fs:28} }
       },
       'G-CLASS W.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
-        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:26} }
       },
       'G-CLASS.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
-        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:26} }
       },
       'GTR GREEN.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
-        bottom: { plate:{l:42,t:83.5,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:42,t:83.5,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
       },
       'GTR WHITE.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
-        bottom: { plate:{l:44,t:83.0,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:44,t:83.0,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
       }
     };
 
@@ -179,43 +163,29 @@
       el.style.height = box.h + '%';
     }
 
-    // box داخل اللوحة: x,y,w,h كلها بالنسبة للوحة
     function setInnerBox(el, box){
       el.style.left   = (box.x) + '%';
       el.style.top    = (box.y) + '%';
       el.style.width  = (box.w) + '%';
       el.style.height = (box.h) + '%';
-      // حجم الخط كنسبة من ارتفاع الصندوق نفسه للحفاظ على التناسب على كل الشاشات
-      if(box.fsH){
-        const plateRect  = el.parentElement.getBoundingClientRect();
-        const targetH    = plateRect.height * (box.h/100); // ارتفاع الصندوق بالبكسل
-        const fontPx     = targetH * (box.fsH/100);
-        el.style.fontSize = Math.max(10, fontPx) + 'px';
-      }
+      if(box.fs){ el.style.fontSize = box.fs + 'px'; }
     }
-
-    function reapply(){ applyPreset(pick.value); }
 
     numberInput.addEventListener('input', () => {
       const v = numberInput.value || '\u00A0';
-      digitsTop.textContent = v; digitsBottom.textContent = v; reapply();
+      digitsTop.textContent = v; digitsBottom.textContent = v;
     });
     catInput.addEventListener('input', () => {
       const v = catInput.value || '\u00A0';
-      catTop.textContent = v; catBottom.textContent = v; reapply();
+      catTop.textContent = v; catBottom.textContent = v;
     });
 
     pick.addEventListener('change', (e)=>{
       img.src = e.target.value;
-      img.onload = reapply;
+      img.onload = ()=> applyPreset(e.target.value);
     });
 
-    // إعادة الحساب عند تغيّر حجم المسرح (مهم للموبايل)
-    const ro = new ResizeObserver(reapply);
-    ro.observe(document.getElementById('stage'));
-
-    window.addEventListener('load', reapply);
-    window.addEventListener('resize', reapply);
+    window.addEventListener('load', ()=> applyPreset(pick.value));
   </script>
 </body>
 </html>
