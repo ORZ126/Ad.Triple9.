@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>٩٩٩ — كتابة الرقم والفئة على اللوحات (علوية + سفلية)</title>
+
+  <!-- Tajawal for UI; FE-Schrift for digits -->
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    @font-face { font-family:'FE-Schrift'; src:url('FE.TTF') format('truetype'); font-display:swap; }
+
+    :root{ --stage-w:540px; }
+
+    body{ font-family:'Tajawal',sans-serif; background:#f6f7f8; margin:0; }
+    .wrap{ max-width:var(--stage-w); margin:14px auto; padding:16px; background:#fff; border:1px solid #ddd; border-radius:14px; box-shadow:0 4px 18px rgba(0,0,0,.05); }
+
+    .toolbar{ display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:12px; }
+    label{ font-size:.9rem; color:#374151; }
+    input, select{ width:100%; padding:.55rem .7rem; border:1px solid #ccc; border-radius:10px; font-size:1rem; }
+
+    .stage{ position:relative; width:100%; aspect-ratio:9/16; background:#fff; border-radius:12px; border:1px solid #eee; overflow:hidden; }
+    .stage img{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
+
+    /* حاويتان: لوحة علوية ولوحة سفلية */
+    .plate{ position:absolute; transform:translate(-50%,-50%); }
+    .plate.upper{ left:50%; top:22.5%; width:84%; height:10.8%; }
+    .plate.lower{ left:50%; top:82%; width:38%; height:6.8%; }
+
+    /* داخل كل لوحة: عنصران مستقلان تمامًا */
+    .field{ position:absolute; transform:translate(-50%,-50%); line-height:1; display:flex; align-items:center; justify-content:center; white-space:nowrap; }
+
+    .cat{ font-weight:700; color:#fff; font-family:'Tajawal'; }
+    .digits{ font-family:'FE-Schrift','Tajawal'; font-weight:700; color:#000; direction:ltr; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="toolbar">
+      <div>
+        <label>الرقم:</label>
+        <input id="plateNumber" type="text" value="11111" />
+      </div>
+      <div>
+        <label>الفئة:</label>
+        <input id="plateCat" type="text" value="A" />
+      </div>
+      <div>
+        <label>الصورة:</label>
+        <select id="carPick">
+          <option value="BRABUS.png">BRABUS G-Class</option>
+          <option value="defender.png">Defender (أمامي)</option>
+          <option value="GTR GREY.png">911 GT3 RS (أمامي)</option>
+          <option value="Nissmo.png">Patrol NISMO</option>
+          <option value="Octa.png">Defender OCTA</option>
+          <option value="RANGE ROVER.png">Range Rover (خلفي)</option>
+          <option value="RANTHA.png">Range Rover (زاوية)</option>
+          <option value="RR.png">Rolls-Royce</option>
+          <option value="G-CLASS W.png">Mercedes G-Class (أبيض)</option>
+          <option value="G-CLASS.png">Mercedes G-Class (أسود)</option>
+          <option value="GTR GREEN.png">Porsche 911 GT3 RS (أخضر)</option>
+          <option value="GTR WHITE.png">Porsche 911 GT3 RS (أبيض)</option>
+        </select>
+      </div>
+    </div>
+
+    <div id="stage" class="stage">
+      <img id="carImg" src="BRABUS.png" alt="car" />
+
+      <!-- اللوحة العلوية: رقم مستقل + فئة مستقلة -->
+      <div id="plateTop" class="plate upper">
+        <div class="field cat" id="catTop">A</div>
+        <div class="field digits" id="digitsTop">11111</div>
+      </div>
+
+      <!-- اللوحة السفلية: رقم مستقل + فئة مستقلة -->
+      <div id="plateBottom" class="plate lower">
+        <div class="field cat" id="catBottom">A</div>
+        <div class="field digits" id="digitsBottom">11111</div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const img = document.getElementById('carImg');
+    const plateTop = document.getElementById('plateTop');
+    const plateBottom = document.getElementById('plateBottom');
+
+    const digitsTop = document.getElementById('digitsTop');
+    const digitsBottom = document.getElementById('digitsBottom');
+    const catTop = document.getElementById('catTop');
+    const catBottom = document.getElementById('catBottom');
+
+    const numberInput = document.getElementById('plateNumber');
+    const catInput = document.getElementById('plateCat');
+    const pick = document.getElementById('carPick');
+
+    const presets = {
+      'BRABUS.png': {
+        top:    { plate:{l:55,t:28,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:70}, cat:{x:3,y:60,w:16,h:90, fs:60} },
+        bottom: { plate:{l:50,t:75,w:38,h:6.5},  digits:{x:63,y:7,w:70,h:90, fs:25}, cat:{x:20,y:10,w:18,h:70, fs:20} }
+      },
+      'defender.png': {
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:50,t:79.5,w:40,h:6.6},  digits:{x:62,y:45,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+      },
+      'GTR GREY.png': {
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:83.0,w:40,h:6.7},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:28} }
+      },
+      'Nissmo.png': {
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:62}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:78.5,w:42,h:6.8},  digits:{x:62,y:50,w:70,h:90, fs:44}, cat:{x:12,y:50,w:18,h:90, fs:28} }
+      },
+      'Octa.png': {
+        top:    { plate:{l:50,t:23.2,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:63,t:88.0,w:32,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
+      },
+      'RANGE ROVER.png': {
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:46,t:77.0,w:30,h:6.0},  digits:{x:62,y:50,w:70,h:90, fs:36}, cat:{x:12,y:50,w:18,h:90, fs:22} }
+      },
+      'RANTHA.png': {
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:82.5,w:36,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:40}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+      },
+      'RR.png': {
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:62}, cat:{x:12,y:50,w:16,h:90, fs:38} },
+        bottom: { plate:{l:50,t:82.5,w:42,h:6.6},  digits:{x:62,y:50,w:70,h:90, fs:44}, cat:{x:12,y:50,w:18,h:90, fs:28} }
+      },
+      'G-CLASS W.png': {
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+      },
+      'G-CLASS.png': {
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
+        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+      },
+      'GTR GREEN.png': {
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:42,t:83.5,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
+      },
+      'GTR WHITE.png': {
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
+        bottom: { plate:{l:44,t:83.0,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
+      }
+    };
+
+    function applyPreset(name){
+      const p = presets[name]; if(!p) return;
+      setPlateBox(document.getElementById('plateTop'), p.top.plate);
+      setPlateBox(document.getElementById('plateBottom'), p.bottom.plate);
+      setInnerBox(document.getElementById('digitsTop'),  p.top.digits);
+      setInnerBox(document.getElementById('catTop'),     p.top.cat);
+      setInnerBox(document.getElementById('digitsBottom'),p.bottom.digits);
+      setInnerBox(document.getElementById('catBottom'),   p.bottom.cat);
+    }
+
+    function setPlateBox(el, box){
+      el.style.left   = box.l + '%';
+      el.style.top    = box.t + '%';
+      el.style.width  = box.w + '%';
+      el.style.height = box.h + '%';
+    }
+
+    function setInnerBox(el, box){
+      el.style.left   = (box.x) + '%';
+      el.style.top    = (box.y) + '%';
+      el.style.width  = (box.w) + '%';
+      el.style.height = (box.h) + '%';
+      if(box.fs){ el.style.fontSize = box.fs + 'px'; }
+    }
+
+    numberInput.addEventListener('input', () => {
+      const v = numberInput.value || '\u00A0';
+      digitsTop.textContent = v; digitsBottom.textContent = v;
+    });
+    catInput.addEventListener('input', () => {
+      const v = catInput.value || '\u00A0';
+      catTop.textContent = v; catBottom.textContent = v;
+    });
+
+    pick.addEventListener('change', (e)=>{
+      img.src = e.target.value;
+      img.onload = ()=> applyPreset(e.target.value);
+    });
+
+    window.addEventListener('load', ()=> applyPreset(pick.value));
+  </script>
+</body>
+</html>
