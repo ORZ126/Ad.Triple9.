@@ -5,25 +5,25 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>٩٩٩ — كتابة الرقم والفئة على اللوحات (علوية + سفلية)</title>
 
-  <!-- Tajawal for UI; FE-Schrift for digits -->
+  <!-- Tajawal for UI; FE‑Schrift for digits -->
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet" />
   <!-- html2canvas للحفظ كصورة -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
-  <!-- Preload للخط -->
+  <!-- حاولنا preload لملف الخط لتفادي تأخر التحميل أو الكاش -->
   <link rel="preload" href="FE.TTF" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="fe.ttf" as="font" type="font/ttf" crossorigin>
-
   <style>
-    /* دعم أكثر من صيغة/اسم للخط + قصره على الأرقام لضمان تطبيقه */
+    /* نحاول كل الصيغ + الاسمين (FE.TTF و fe.ttf) لتفادي أخطاء حساسية الأحرف على GitHub */
     @font-face {
-      font-family: 'FE-Schrift';
+      font-family:'FE-Schrift';
       src:
         url('FE.woff2') format('woff2'),
         url('FE.woff') format('woff'),
         url('FE.TTF') format('truetype'),
         url('fe.ttf') format('truetype');
-      font-display: swap;
-      unicode-range: U+0030-0039; /* 0-9 */
+      font-display:swap;
+      /* استخدم الخط فقط للأرقام 0-9 لضمان تطبيقه حتى لو لم يدعم باقي المحارف */
+      unicode-range: U+0030-0039;
     }
 
     :root{ --stage-w:540px; }
@@ -43,20 +43,14 @@
     .plate.upper{ left:50%; top:22.5%; width:84%; height:10.8%; }
     .plate.lower{ left:50%; top:82%; width:38%; height:6.8%; }
 
-    /* داخل كل لوحة: عنصران مستقلان */
-    .field{ position:absolute; transform:translate(-50%,-50%); line-height:1; display:flex; align-items:center; justify-content:center; white-space:nowrap; }
+    /* داخل كل لوحة: عنصران مستقلان تمامًا */
+    .field{ position:absolute; transform:translate(-50%,-50%); line-height:1; display:flex; align-items:center; justify-content:center; white-space:nowrap; box-sizing:border-box; overflow:hidden; }
 
     .cat{ font-weight:700; color:#fff; font-family:'Tajawal'; }
     .digits{ font-family:'FE-Schrift','Tajawal'; font-weight:700; color:#000; direction:ltr; text-align:center; }
-
-    /* السعر (الرقم + أيقونة الدرهم) أسفل المسرح */
-    .price{
-      position:absolute; left:50%; bottom:2%; transform:translateX(-50%);
-      font-family:'Tajawal',sans-serif; font-weight:700; color:#000; letter-spacing:.3px;
-      font-size:clamp(14px, 2.8vw, 22px);
-    }
+    /* السعر أسفل الصورة داخل المسرح */
+    .price{ position:absolute; left:50%; bottom:2%; transform:translateX(-50%); font-family:'Tajawal',sans-serif; font-weight:700; color:#000; letter-spacing:.3px; font-size:clamp(14px, 2.8vw, 22px); }
     .price .aed{ height:1em; margin-inline-start:6px; vertical-align:middle; }
-
     .actions{ display:flex; justify-content:center; gap:10px; margin-top:12px; }
     .actions button{ padding:.7rem 1rem; border:1px solid #111; background:#111; color:#fff; border-radius:10px; font-weight:700; cursor:pointer; }
     .actions button:hover{ opacity:.9; }
@@ -99,61 +93,66 @@
     <div id="stage" class="stage">
       <img id="carImg" src="BRABUS.png" alt="car" />
 
-      <!-- اللوحة العلوية -->
+      <!-- اللوحة العلوية: رقم مستقل + فئة مستقلة -->
       <div id="plateTop" class="plate upper">
         <div class="field cat" id="catTop">A</div>
         <div class="field digits" id="digitsTop">11111</div>
       </div>
 
-      <!-- اللوحة السفلية -->
+      <!-- اللوحة السفلية: رقم مستقل + فئة مستقلة -->
       <div id="plateBottom" class="plate lower">
         <div class="field cat" id="catBottom">A</div>
         <div class="field digits" id="digitsBottom">11111</div>
       </div>
-
       <!-- الرقم + أيقونة الدرهم أسفل المسرح -->
-      <div id="priceTag" class="price">
-        <span id="priceText">100,000</span>
-        <img src="AED.png" class="aed" alt="AED"/>
-      </div>
+      <div id="priceTag" class="price"><span id="priceText">100,000</span> <img src="AED.png" class="aed" alt="AED"/></div>
     </div>
-
     <div class="actions">
       <button id="saveBtn">حفظ الصورة (PNG)</button>
     </div>
   </div>
 
   <script>
-    const img         = document.getElementById('carImg');
-    const digitsTop   = document.getElementById('digitsTop');
-    const digitsBottom= document.getElementById('digitsBottom');
-    const catTop      = document.getElementById('catTop');
-    const catBottom   = document.getElementById('catBottom');
+    const img = document.getElementById('carImg');
+    const plateTop = document.getElementById('plateTop');
+    const plateBottom = document.getElementById('plateBottom');
+
+    const digitsTop = document.getElementById('digitsTop');
+    const digitsBottom = document.getElementById('digitsBottom');
+    const catTop = document.getElementById('catTop');
+    const catBottom = document.getElementById('catBottom');
 
     const numberInput = document.getElementById('plateNumber');
-    const catInput    = document.getElementById('plateCat');
-    const pick        = document.getElementById('carPick');
-    const priceInput  = document.getElementById('priceInput');
-    const priceText   = document.getElementById('priceText');
-    const saveBtn     = document.getElementById('saveBtn');
-    const stage       = document.getElementById('stage');
+    const catInput = document.getElementById('plateCat');
+    const pick = document.getElementById('carPick');
+    const priceInput = document.getElementById('priceInput');
+    const priceText = document.getElementById('priceText');
+    const saveBtn = document.getElementById('saveBtn');
+    const stage      = document.getElementById('stage');
 
-    // تنقية خانة السعر (يبقي الأرقام والفواصل/النقطة فقط)
-    const normalizeAmount = (s)=> (s||'').toString().split('')
-      .filter(ch => '0123456789.,'.includes(ch)).join('');
+    // إبقاء خانة السعر أرقام فقط (يسمح بالفواصل والنقطة)؛ الرمز يُعرض كصورة منفصلة
+    const normalizeAmount = (s)=> (s||'').toString().split('').filter(ch => '0123456789.,'.includes(ch)).join('').trim();
 
-    // تحويل الأرقام العربية/الفارسية إلى 0-9 لاتينية لاستخدام FE-Schrift
+    // تحويل أي أرقام عربية/فارسيّة إلى أرقام لاتينية 0-9 لضمان وجودها في FE-Schrift
     const mapArabic = '٠١٢٣٤٥٦٧٨٩';
-    const mapPersian= '۰۱۲۳۴۵۶۷۸۹';
+    const mapPersian = '۰۱۲۳۴۵۶۷۸۹';
     function normalizeDigits(str){
       return (str||'').split('').map(ch=>{
-        const iA = mapArabic.indexOf(ch); if(iA !== -1) return String(iA);
-        const iP = mapPersian.indexOf(ch); if(iP !== -1) return String(iP);
+        const iA = mapArabic.indexOf(ch);
+        if(iA !== -1) return String(iA);
+        const iP = mapPersian.indexOf(ch);
+        if(iP !== -1) return String(iP);
         return ch;
       }).join('');
     }
 
-    /* قياسات كل سيارة */
+    /*
+      لكل صورة:
+        top:   موضع/حجم الحاوية العلوية + صناديق مستقلة للرقم والفئة داخلها
+        bottom: موضع/حجم الحاوية السفلية + صناديق مستقلة للرقم والفئة داخلها
+      داخل كل plate، الإحداثيات (x,y,w,h) بالنسبة للوحة نفسها (٪)
+      fsH = نسبة مئوية من ارتفاع صندوق العنصر نفسه (وليس px) لتثبيت التناسب على كل الشاشات
+    */
     const presets = {
       'BRABUS.png': {
         top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
@@ -207,39 +206,55 @@
 
     function applyPreset(name){
       const p = presets[name]; if(!p) return;
-      setPlateBox(document.getElementById('plateTop'),    p.top.plate);
+      setPlateBox(document.getElementById('plateTop'), p.top.plate);
       setPlateBox(document.getElementById('plateBottom'), p.bottom.plate);
-      setInnerBox(document.getElementById('digitsTop'),   p.top.digits);
-      setInnerBox(document.getElementById('catTop'),      p.top.cat);
+      setInnerBox(document.getElementById('digitsTop'),  p.top.digits);
+      setInnerBox(document.getElementById('catTop'),     p.top.cat);
       setInnerBox(document.getElementById('digitsBottom'),p.bottom.digits);
       setInnerBox(document.getElementById('catBottom'),   p.bottom.cat);
     }
 
     function setPlateBox(el, box){
-      el.style.left = box.l + '%';
-      el.style.top  = box.t + '%';
+      el.style.left   = box.l + '%';
+      el.style.top    = box.t + '%';
       el.style.width  = box.w + '%';
       el.style.height = box.h + '%';
     }
 
+    // تقليص الخط تلقائيًا حتى لا يتجاوز حدود الصندوق
+    function fitText(el, maxIterations = 20){
+      const cw = el.clientWidth, ch = el.clientHeight;
+      if(!cw || !ch) return;
+      let size = parseFloat(getComputedStyle(el).fontSize) || 12;
+      let i = 0;
+      while(i < maxIterations && (el.scrollWidth > cw || el.scrollHeight > ch)){
+        size = size * 0.96; // 4% كل دورة
+        el.style.fontSize = size + 'px';
+        i++;
+      }
+    }
+
     // box داخل اللوحة: x,y,w,h كلها بالنسبة للوحة
     function setInnerBox(el, box){
-      el.style.left   = box.x + '%';
-      el.style.top    = box.y + '%';
-      el.style.width  = box.w + '%';
-      el.style.height = box.h + '%';
+      el.style.left   = (box.x) + '%';
+      el.style.top    = (box.y) + '%';
+      el.style.width  = (box.w) + '%';
+      el.style.height = (box.h) + '%';
       if(box.fsH){
-        const plateRect = el.parentElement.getBoundingClientRect();
-        const targetH   = plateRect.height * (box.h/100);
-        const fontPx    = targetH * (box.fsH/100);
+        const plateRect  = el.parentElement.getBoundingClientRect();
+        const targetH    = plateRect.height * (box.h/100);
+        const fontPx     = targetH * (box.fsH/100);
         el.style.fontSize = Math.max(10, fontPx) + 'px';
       }
+      fitText(el);
+    }
     }
 
     function reapply(){ applyPreset(pick.value); }
 
     numberInput.addEventListener('input', () => {
-      const v = normalizeDigits(numberInput.value || '\u00A0');
+      const raw = numberInput.value || ' ';
+      const v = normalizeDigits(raw);
       digitsTop.textContent = v; digitsBottom.textContent = v; reapply();
     });
     catInput.addEventListener('input', () => {
@@ -249,32 +264,35 @@
 
     pick.addEventListener('change', (e)=>{
       img.src = e.target.value;
-      img.onload = reapply;
+      img.onload = ()=>{ reapply(); fitText(digitsTop); fitText(digitsBottom); fitText(catTop); fitText(catBottom); };
     });
 
-    // تحديث القياسات عند تغيّر حجم المسرح
+    // إعادة الحساب عند تغيّر حجم المسرح (مهم للموبايل)
     const ro = new ResizeObserver(reapply);
-    ro.observe(stage);
-    window.addEventListener('resize', reapply);
+    ro.observe(document.getElementById('stage'));
 
-    // السعر
     window.addEventListener('load', ()=> {
       applyPreset(pick.value);
       priceText.textContent = normalizeAmount(priceInput.value) || ' ';
+      fitText(digitsTop); fitText(digitsBottom); fitText(catTop); fitText(catBottom);
     });
+      priceText.textContent = normalizeAmount(priceInput.value) || ' ';
+    });
+
     priceInput.addEventListener('input', ()=>{
       priceText.textContent = normalizeAmount(priceInput.value) || ' ';
     });
 
-    // حفظ الصورة
     saveBtn.addEventListener('click', async ()=>{
-      await new Promise(r=>setTimeout(r,50)); // تأكد أن كل شيء رُسم
+      // تأكد أن كل شيء مرسوم ثم التقط الصورة
+      await new Promise(r=>setTimeout(r,50));
       const canvas = await html2canvas(stage, {useCORS:true, backgroundColor:null, scale:2});
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
       a.href = url; a.download = `plate_${Date.now()}.png`;
       document.body.appendChild(a); a.click(); a.remove();
     });
+    window.addEventListener('resize', reapply);
   </script>
 </body>
 </html>
