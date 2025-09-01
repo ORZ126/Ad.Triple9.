@@ -5,10 +5,26 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>٩٩٩ — كتابة الرقم والفئة على اللوحات (علوية + سفلية)</title>
 
-  <!-- Tajawal for UI; FE-Schrift for digits -->
+  <!-- Tajawal for UI; FE‑Schrift for digits -->
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet" />
+  <!-- html2canvas للحفظ كصورة -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
+  <!-- حاولنا preload لملف الخط لتفادي تأخر التحميل أو الكاش -->
+  <link rel="preload" href="FE.TTF" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="fe.ttf" as="font" type="font/ttf" crossorigin>
   <style>
-    @font-face { font-family:'FE-Schrift'; src:url('FE.TTF') format('truetype'); font-display:swap; }
+    /* نحاول كل الصيغ + الاسمين (FE.TTF و fe.ttf) لتفادي أخطاء حساسية الأحرف على GitHub */
+    @font-face {
+      font-family:'FE-Schrift';
+      src:
+        url('FE.woff2') format('woff2'),
+        url('FE.woff') format('woff'),
+        url('FE.TTF') format('truetype'),
+        url('fe.ttf') format('truetype');
+      font-display:swap;
+      /* استخدم الخط فقط للأرقام 0-9 لضمان تطبيقه حتى لو لم يدعم باقي المحارف */
+      unicode-range: U+0030-0039;
+    }
 
     :root{ --stage-w:540px; }
 
@@ -32,6 +48,11 @@
 
     .cat{ font-weight:700; color:#fff; font-family:'Tajawal'; }
     .digits{ font-family:'FE-Schrift','Tajawal'; font-weight:700; color:#000; direction:ltr; text-align:center; }
+    /* السعر أسفل الصورة داخل المسرح */
+    .price{ position:absolute; left:50%; bottom:2%; transform:translateX(-50%); font-family:'Tajawal',sans-serif; font-weight:700; color:#000; letter-spacing:.3px; font-size:clamp(14px, 2.8vw, 22px); }
+    .actions{ display:flex; justify-content:center; gap:10px; margin-top:12px; }
+    .actions button{ padding:.7rem 1rem; border:1px solid #111; background:#111; color:#fff; border-radius:10px; font-weight:700; cursor:pointer; }
+    .actions button:hover{ opacity:.9; }
   </style>
 </head>
 <body>
@@ -62,6 +83,10 @@
           <option value="GTR WHITE.png">Porsche 911 GT3 RS (أبيض)</option>
         </select>
       </div>
+      <div>
+        <label>السعر:</label>
+        <input id="priceInput" type="text" value="100,000 درهم" />
+      </div>
     </div>
 
     <div id="stage" class="stage">
@@ -75,9 +100,13 @@
 
       <!-- اللوحة السفلية: رقم مستقل + فئة مستقلة -->
       <div id="plateBottom" class="plate lower">
-        <div class="field cat" id="catBottom">A</div>
+        <div class="field cat" id="catBottom">A</div></div>
+      <!-- السعر داخل المسرح ليظهر عند الحفظ -->
+      <div id="priceTag" class="price">السعر: <span id="priceText">100,000 درهم</span></div>
         <div class="field digits" id="digitsBottom">11111</div>
       </div>
+    <div class="actions">
+      <button id="saveBtn">حفظ الصورة (PNG)</button>
     </div>
   </div>
 
@@ -94,55 +123,79 @@
     const numberInput = document.getElementById('plateNumber');
     const catInput = document.getElementById('plateCat');
     const pick = document.getElementById('carPick');
+    const priceInput = document.getElementById('priceInput');
+    const priceText = document.getElementById('priceText');
+    const saveBtn = document.getElementById('saveBtn');
+    const stage = document.getElementById('stage');
 
+    // تحويل أي أرقام عربية/فارسيّة إلى أرقام لاتينية 0-9 لضمان وجودها في FE-Schrift
+    const mapArabic = '٠١٢٣٤٥٦٧٨٩';
+    const mapPersian = '۰۱۲۳۴۵۶۷۸۹';
+    function normalizeDigits(str){
+      return (str||'').split('').map(ch=>{
+        const iA = mapArabic.indexOf(ch);
+        if(iA !== -1) return String(iA);
+        const iP = mapPersian.indexOf(ch);
+        if(iP !== -1) return String(iP);
+        return ch;
+      }).join('');
+    }
+
+    /*
+      لكل صورة:
+        top:   موضع/حجم الحاوية العلوية + صناديق مستقلة للرقم والفئة داخلها
+        bottom: موضع/حجم الحاوية السفلية + صناديق مستقلة للرقم والفئة داخلها
+      داخل كل plate، الإحداثيات (x,y,w,h) بالنسبة للوحة نفسها (٪)
+      fsH = نسبة مئوية من ارتفاع صندوق العنصر نفسه (وليس px) لتثبيت التناسب على كل الشاشات
+    */
     const presets = {
       'BRABUS.png': {
         top:    { plate:{l:55,t:25,w:86,h:10.8}, digits:{x:63,y:73,w:70,h:90, fs:55}, cat:{x:3,y:83,w:16,h:90, fs:56} },
         bottom: { plate:{l:50,t:75,w:38,h:6.5},  digits:{x:63,y:6,w:70,h:90, fs:15}, cat:{x:20,y:13,w:18,h:70, fs:15} }
       },
       'defender.png': {
-        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:60,w:70,h:90, fs:70}, cat:{x:12,y:60,w:16,h:90, fs:60} },
-        bottom: { plate:{l:50,t:79.5,w:40,h:6.6},  digits:{x:62,y:45,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
+        bottom: { plate:{l:50,t:79.5,w:40,h:6.6},  digits:{x:62,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
       },
       'GTR GREY.png': {
-        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
-        bottom: { plate:{l:50,t:83.0,w:40,h:6.7},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:28} }
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
+        bottom: { plate:{l:50,t:83.0,w:40,h:6.7},  digits:{x:62,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:18,h:90, fsH:76} }
       },
       'Nissmo.png': {
-        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:62}, cat:{x:12,y:50,w:16,h:90, fs:36} },
-        bottom: { plate:{l:50,t:78.5,w:42,h:6.8},  digits:{x:62,y:50,w:70,h:90, fs:44}, cat:{x:12,y:50,w:18,h:90, fs:28} }
+        top:    { plate:{l:50,t:22.8,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
+        bottom: { plate:{l:50,t:78.5,w:42,h:6.8},  digits:{x:62,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:18,h:90, fsH:76} }
       },
       'Octa.png': {
-        top:    { plate:{l:50,t:23.2,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
-        bottom: { plate:{l:63,t:88.0,w:32,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
+        top:    { plate:{l:50,t:23.2,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
+        bottom: { plate:{l:63,t:88.0,w:32,h:6.2},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
       },
       'RANGE ROVER.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
-        bottom: { plate:{l:46,t:77.0,w:30,h:6.0},  digits:{x:62,y:50,w:70,h:90, fs:36}, cat:{x:12,y:50,w:18,h:90, fs:22} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
+        bottom: { plate:{l:46,t:77.0,w:30,h:6.0},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
       },
       'RANTHA.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
-        bottom: { plate:{l:50,t:82.5,w:36,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:40}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
+        bottom: { plate:{l:50,t:82.5,w:36,h:6.5},  digits:{x:62,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
       },
       'RR.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:62}, cat:{x:12,y:50,w:16,h:90, fs:38} },
-        bottom: { plate:{l:50,t:82.5,w:42,h:6.6},  digits:{x:62,y:50,w:70,h:90, fs:44}, cat:{x:12,y:50,w:18,h:90, fs:28} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:16,h:90, fsH:80} },
+        bottom: { plate:{l:50,t:82.5,w:42,h:6.6},  digits:{x:62,y:50,w:70,h:90, fsH:84}, cat:{x:12,y:50,w:18,h:90, fsH:76} }
       },
       'G-CLASS W.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
-        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
+        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
       },
       'G-CLASS.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:60}, cat:{x:12,y:50,w:16,h:90, fs:36} },
-        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fs:42}, cat:{x:12,y:50,w:18,h:90, fs:26} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:16,h:90, fsH:78} },
+        bottom: { plate:{l:50,t:81.5,w:40,h:6.5},  digits:{x:62,y:50,w:70,h:90, fsH:82}, cat:{x:12,y:50,w:18,h:90, fsH:74} }
       },
       'GTR GREEN.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
-        bottom: { plate:{l:42,t:83.5,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
+        bottom: { plate:{l:42,t:83.5,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
       },
       'GTR WHITE.png': {
-        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fs:58}, cat:{x:12,y:50,w:16,h:90, fs:34} },
-        bottom: { plate:{l:44,t:83.0,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fs:38}, cat:{x:12,y:50,w:18,h:90, fs:24} }
+        top:    { plate:{l:50,t:23.0,w:86,h:10.8}, digits:{x:63,y:50,w:70,h:90, fsH:80}, cat:{x:12,y:50,w:16,h:90, fsH:76} },
+        bottom: { plate:{l:44,t:83.0,w:34,h:6.2},  digits:{x:62,y:50,w:70,h:90, fsH:78}, cat:{x:12,y:50,w:18,h:90, fsH:72} }
       }
     };
 
@@ -163,29 +216,61 @@
       el.style.height = box.h + '%';
     }
 
+    // box داخل اللوحة: x,y,w,h كلها بالنسبة للوحة
     function setInnerBox(el, box){
       el.style.left   = (box.x) + '%';
       el.style.top    = (box.y) + '%';
       el.style.width  = (box.w) + '%';
       el.style.height = (box.h) + '%';
-      if(box.fs){ el.style.fontSize = box.fs + 'px'; }
+      // حجم الخط كنسبة من ارتفاع الصندوق نفسه للحفاظ على التناسب على كل الشاشات
+      if(box.fsH){
+        const plateRect  = el.parentElement.getBoundingClientRect();
+        const targetH    = plateRect.height * (box.h/100); // ارتفاع الصندوق بالبكسل
+        const fontPx     = targetH * (box.fsH/100);
+        el.style.fontSize = Math.max(10, fontPx) + 'px';
+      }
     }
 
+    function reapply(){ applyPreset(pick.value); }
+
     numberInput.addEventListener('input', () => {
-      const v = numberInput.value || '\u00A0';
-      digitsTop.textContent = v; digitsBottom.textContent = v;
+      const raw = numberInput.value || ' ';
+      const v = normalizeDigits(raw);
+      digitsTop.textContent = v; digitsBottom.textContent = v; reapply();
     });
     catInput.addEventListener('input', () => {
       const v = catInput.value || '\u00A0';
-      catTop.textContent = v; catBottom.textContent = v;
+      catTop.textContent = v; catBottom.textContent = v; reapply();
     });
 
     pick.addEventListener('change', (e)=>{
       img.src = e.target.value;
-      img.onload = ()=> applyPreset(e.target.value);
+      img.onload = reapply;
     });
 
-    window.addEventListener('load', ()=> applyPreset(pick.value));
+    // إعادة الحساب عند تغيّر حجم المسرح (مهم للموبايل)
+    const ro = new ResizeObserver(reapply);
+    ro.observe(document.getElementById('stage'));
+
+    window.addEventListener('load', ()=> {
+      applyPreset(pick.value);
+      priceText.textContent = priceInput.value || ' ';
+    });
+
+    priceInput.addEventListener('input', ()=>{
+      priceText.textContent = priceInput.value || ' ';
+    });
+
+    saveBtn.addEventListener('click', async ()=>{
+      // تأكد أن كل شيء مرسوم ثم التقط الصورة
+      await new Promise(r=>setTimeout(r,50));
+      const canvas = await html2canvas(stage, {useCORS:true, backgroundColor:null, scale:2});
+      const url = canvas.toDataURL('image/png');
+      const a = document.createElement('a');
+      a.href = url; a.download = `plate_${Date.now()}.png`;
+      document.body.appendChild(a); a.click(); a.remove();
+    });
+    window.addEventListener('resize', reapply);
   </script>
 </body>
 </html>
