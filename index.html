@@ -44,9 +44,18 @@
     .plate.lower{ left:50%; top:82%; width:38%; height:6.8%; }
 
     /* داخل كل لوحة: عنصران مستقلان + قفل المحتوى داخل الصندوق */
-    .field{ position:absolute; transform:translate(-50%,-50%); line-height:1; display:flex; align-items:center; justify-content:center; white-space:nowrap; box-sizing:border-box; overflow:hidden; }
+    .field{
+      position:absolute;
+      /* التموضع يبقى بالـ left/top كنِسَب من setInnerBox */
+      transform: translate(-50%,-50%) scale(var(--fit, 1));
+      transform-origin: center;
+      line-height:1;
+      display:flex; align-items:center; justify-content:center;
+      white-space:nowrap; box-sizing:border-box; overflow:hidden;
+      will-change: transform, font-size;
+    }
 
-    .cat{ font-weight:700; color:#fff; font-family:'Tajawal'; }
+    .cat{ font-weight:700; color:#fff; font-family:'FE-Schrift','Tajawal',sans-serif; direction:ltr; text-align:center; }
     .digits{ font-family:'FE-Schrift','Tajawal'; font-weight:700; color:#000; direction:ltr; text-align:center; }
 
     /* الرقم + أيقونة الدرهم أسفل المسرح */
@@ -71,7 +80,7 @@
       </div>
       <div>
         <label>الفئة:</label>
-        <input id="plateCat" type="text" value="A" />
+        <input id="plateCat" type="text" value="1" />
       </div>
       <div>
         <label>الصورة:</label>
@@ -101,13 +110,13 @@
 
       <!-- اللوحة العلوية -->
       <div id="plateTop" class="plate upper">
-        <div class="field cat" id="catTop">A</div>
+        <div class="field cat" id="catTop">1</div>
         <div class="field digits" id="digitsTop">11111</div>
       </div>
 
       <!-- اللوحة السفلية -->
       <div id="plateBottom" class="plate lower">
-        <div class="field cat" id="catBottom">A</div>
+        <div class="field cat" id="catBottom">1</div>
         <div class="field digits" id="digitsBottom">11111</div>
       </div>
 
@@ -225,19 +234,6 @@
       el.style.height = box.h + '%';
     }
 
-    // تقليص الخط تلقائيًا حتى لا يتجاوز حدود الصندوق
-    function fitText(el, maxIterations = 20){
-      const cw = el.clientWidth, ch = el.clientHeight;
-      if(!cw || !ch) return;
-      let size = parseFloat(getComputedStyle(el).fontSize) || 12;
-      let i = 0;
-      while(i < maxIterations && (el.scrollWidth > cw || el.scrollHeight > ch)){
-        size = size * 0.96; // 4% كل دورة
-        el.style.fontSize = size + 'px';
-        i++;
-      }
-    }
-
     // box داخل اللوحة: x,y,w,h كلها بالنسبة للوحة
     function setInnerBox(el, box){
       el.style.left   = (box.x) + '%';
@@ -253,6 +249,32 @@
       }
     }
 
+    // تقليص الخط أولاً، ثم (إن لزم) تصغير إضافي بالـ scale ليختفي أي overflow تمامًا
+    function fitText(el, maxLoops = 30){
+      // إعادة ضبط أي scale سابق
+      el.style.removeProperty('--fit');
+
+      // ضمان وجود أبعاد قبل القياس
+      const cw = el.clientWidth, ch = el.clientHeight;
+      if(!cw || !ch) return;
+
+      // 1) تصغير حجم الخط تدريجيًا حتى يختفي overflow
+      let loops = 0;
+      while (loops < maxLoops && (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight)) {
+        const cur = parseFloat(getComputedStyle(el).fontSize) || 12;
+        const next = Math.max(8, cur * 0.95); // لا ننزل تحت 8px
+        if (Math.abs(next - cur) < 0.25) break;
+        el.style.fontSize = next + 'px';
+        loops++;
+      }
+
+      // 2) حزام أمان نهائي: إن بقي فرق بسيط جدًا، نستخدم scale()
+      const sx = el.clientWidth  / el.scrollWidth;
+      const sy = el.clientHeight / el.scrollHeight;
+      const s  = Math.min(1, sx, sy); // لا نكبر النص، فقط نصغّره إن لزم
+      el.style.setProperty('--fit', s);
+    }
+
     function reapply(){ applyPreset(pick.value); }
 
     numberInput.addEventListener('input', () => {
@@ -260,7 +282,7 @@
       digitsTop.textContent = v; digitsBottom.textContent = v; reapply();
     });
     catInput.addEventListener('input', () => {
-      const v = catInput.value || '\u00A0';
+      const v = normalizeDigits(catInput.value || ' ');
       catTop.textContent = v; catBottom.textContent = v; reapply();
     });
 
@@ -273,6 +295,11 @@
     const ro = new ResizeObserver(()=>{ reapply(); });
     ro.observe(stage);
     window.addEventListener('resize', reapply);
+
+    // أعد القياسات بعد اكتمال تحميل الخطوط (FE-Schrift) لأن شكل الأرقام يتغير
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(() => { reapply(); });
+    }
 
     // السعر (رقم فقط + أيقونة)
     window.addEventListener('load', ()=> {
