@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>٩٩٩ — كتابة الرقم والفئة على اللوحات (علوية + سفلية)</title>
 
-  <!-- Tajawal for UI; FE‑Schrift for digits -->
+  <!-- Tajawal for UI; FE-Schrift for digits -->
   <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet" />
   <!-- html2canvas للحفظ كصورة -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js" defer></script>
@@ -46,7 +46,6 @@
     /* داخل كل لوحة: عنصران مستقلان + قفل المحتوى داخل الصندوق */
     .field{
       position:absolute;
-      /* التموضع يبقى بالـ left/top كنِسَب من setInnerBox */
       transform: translate(-50%,-50%) scale(var(--fit, 1));
       transform-origin: center;
       line-height:1;
@@ -58,13 +57,13 @@
     .cat{ font-weight:700; color:#fff; font-family:'FE-Schrift','Tajawal',sans-serif; direction:ltr; text-align:center; }
     .digits{ font-family:'FE-Schrift','Tajawal'; font-weight:700; color:#000; direction:ltr; text-align:center; }
 
-    /* الرقم + أيقونة الدرهم أسفل المسرح */
+    /* السعر أسفل الصورة — رقم فقط مع فواصل */
     .price{
-      position:absolute; left:30%; bottom:10%; transform:translateX(-50%);
-      font-family:'Tajawal',sans-serif; font-weight:700; color:#000; letter-spacing:.3px;
-      font-size:clamp(14px, 2.8vw, 22px); z-index:5;
+      position:absolute; left:50%; bottom:2.5%; transform:translateX(-50%);
+      font-family:'Tajawal',sans-serif; font-weight:700; color:#000;
+      direction:ltr; text-align:center; letter-spacing:.3px;
+      font-size:clamp(25px, 2.8vw, 22px); z-index:5; user-select:none;
     }
-    .price .aed{ height:3em; margin-inline-start:3px; vertical-align:middle; }
 
     .actions{ display:flex; justify-content:center; gap:10px; margin-top:12px; }
     .actions button{ padding:.7rem 1rem; border:1px solid #111; background:#111; color:#fff; border-radius:10px; font-weight:700; cursor:pointer; }
@@ -99,9 +98,10 @@
           <option value="GTR WHITE.png">Porsche 911 GT3 RS (أبيض)</option>
         </select>
       </div>
+      <!-- خانة السعر (رقم فقط) -->
       <div>
         <label>السعر:</label>
-        <input id="priceInput" type="text" value="100,000" />
+        <input id="priceInput" type="text" value="100000" inputmode="numeric" />
       </div>
     </div>
 
@@ -120,10 +120,9 @@
         <div class="field digits" id="digitsBottom">11111</div>
       </div>
 
-      <!-- الرقم + أيقونة الدرهم أسفل المسرح -->
+      <!-- السعر أسفل الصورة — رقم فقط -->
       <div id="priceTag" class="price">
-        <span id="priceText">100,000</span>
-        <img src="AED.png" class="aed" alt="AED"/>
+        <span id="priceText"></span>
       </div>
     </div>
 
@@ -142,15 +141,15 @@
     const numberInput = document.getElementById('plateNumber');
     const catInput    = document.getElementById('plateCat');
     const pick        = document.getElementById('carPick');
+
+    // سعر
     const priceInput  = document.getElementById('priceInput');
     const priceText   = document.getElementById('priceText');
+
     const saveBtn     = document.getElementById('saveBtn');
     const stage       = document.getElementById('stage');
 
-    // تنقية خانة السعر (يبقي الأرقام والفواصل/النقطة فقط)
-    const normalizeAmount = (s)=> (s||'').toString().split('').filter(ch => '0123456789.,'.includes(ch)).join('');
-
-    // تحويل الأرقام العربية/الفارسية إلى 0-9 لاتينية لاستخدام FE‑Schrift
+    // تحويل الأرقام العربية/الفارسية إلى 0-9 لاتينية
     const mapArabic = '٠١٢٣٤٥٦٧٨٩';
     const mapPersian= '۰۱۲۳۴۵۶۷۸۹';
     function normalizeDigits(str){
@@ -159,6 +158,13 @@
         const iP = mapPersian.indexOf(ch); if(iP !== -1) return String(iP);
         return ch;
       }).join('');
+    }
+
+    // فلترة السعر: أرقام فقط + تنسيق فواصل آلاف
+    const onlyNumbers = (s)=> normalizeDigits(s).replace(/\D+/g, '');
+    function formatWithCommas(numStr){
+      if(!numStr) return '';
+      return numStr.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
     /* القياسات لكل سيارة (اللوحة العلوية والسفلية + مواضع الرقم/الفئة لكل واحدة) */
@@ -240,38 +246,32 @@
       el.style.top    = (box.y) + '%';
       el.style.width  = (box.w) + '%';
       el.style.height = (box.h) + '%';
-      // حجم الخط كنسبة من ارتفاع الصندوق نفسه للحفاظ على التناسب على كل الشاشات
       if(box.fsH){
         const plateRect  = el.parentElement.getBoundingClientRect();
-        const targetH    = plateRect.height * (box.h/100); // ارتفاع الصندوق بالبكسل
+        const targetH    = plateRect.height * (box.h/100);
         const fontPx     = targetH * (box.fsH/100);
         el.style.fontSize = Math.max(10, fontPx) + 'px';
       }
     }
 
-    // تقليص الخط أولاً، ثم (إن لزم) تصغير إضافي بالـ scale ليختفي أي overflow تمامًا
+    // تقليص الخط أولاً، ثم (إن لزم) scale
     function fitText(el, maxLoops = 30){
-      // إعادة ضبط أي scale سابق
       el.style.removeProperty('--fit');
-
-      // ضمان وجود أبعاد قبل القياس
       const cw = el.clientWidth, ch = el.clientHeight;
       if(!cw || !ch) return;
 
-      // 1) تصغير حجم الخط تدريجيًا حتى يختفي overflow
       let loops = 0;
       while (loops < maxLoops && (el.scrollWidth > el.clientWidth || el.scrollHeight > el.clientHeight)) {
         const cur = parseFloat(getComputedStyle(el).fontSize) || 12;
-        const next = Math.max(8, cur * 0.95); // لا ننزل تحت 8px
+        const next = Math.max(8, cur * 0.95);
         if (Math.abs(next - cur) < 0.25) break;
         el.style.fontSize = next + 'px';
         loops++;
       }
 
-      // 2) حزام أمان نهائي: إن بقي فرق بسيط جدًا، نستخدم scale()
       const sx = el.clientWidth  / el.scrollWidth;
       const sy = el.clientHeight / el.scrollHeight;
-      const s  = Math.min(1, sx, sy); // لا نكبر النص، فقط نصغّره إن لزم
+      const s  = Math.min(1, sx, sy);
       el.style.setProperty('--fit', s);
     }
 
@@ -282,9 +282,18 @@
       digitsTop.textContent = v; digitsBottom.textContent = v; reapply();
     });
     catInput.addEventListener('input', () => {
-      const v = normalizeDigits(catInput.value || ' ');
+      const v = normalizeDigits(catInput.value || ' ');
       catTop.textContent = v; catBottom.textContent = v; reapply();
     });
+
+    // السعر: أرقام فقط + فواصل آلاف أثناء الكتابة
+    function updatePrice(){
+      const digits = onlyNumbers(priceInput.value);
+      const formatted = formatWithCommas(digits);
+      priceInput.value = formatted;      // يُظهر الفواصل في خانة الإدخال
+      priceText.textContent = formatted; // ويعرضها أسفل الصورة
+    }
+    priceInput.addEventListener('input', updatePrice);
 
     pick.addEventListener('change', (e)=>{
       img.src = e.target.value;
@@ -296,23 +305,20 @@
     ro.observe(stage);
     window.addEventListener('resize', reapply);
 
-    // أعد القياسات بعد اكتمال تحميل الخطوط (FE-Schrift) لأن شكل الأرقام يتغير
+    // بعد تحميل الخطوط
     if (document.fonts && document.fonts.ready) {
       document.fonts.ready.then(() => { reapply(); });
     }
 
-    // السعر (رقم فقط + أيقونة)
+    // عند التحميل الأول
     window.addEventListener('load', ()=> {
       applyPreset(pick.value);
-      priceText.textContent = normalizeAmount(priceInput.value) || ' ';
-    });
-    priceInput.addEventListener('input', ()=>{
-      priceText.textContent = normalizeAmount(priceInput.value) || ' ';
+      updatePrice(); // تزامُن السعر المبدئي مع الفواصل
     });
 
     // حفظ الصورة
     saveBtn.addEventListener('click', async ()=>{
-      await new Promise(r=>setTimeout(r,50)); // تأكد أن كل شيء رُسم
+      await new Promise(r=>setTimeout(r,50));
       const canvas = await html2canvas(stage, {useCORS:true, backgroundColor:null, scale:2});
       const url = canvas.toDataURL('image/png');
       const a = document.createElement('a');
